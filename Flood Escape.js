@@ -88,6 +88,8 @@ setLegend(
 )
 
 setSolids([ playerIdle, platform ])
+setSolids([ playerJump, platform ])
+setSolids([ playerFall, platform ])
 
 let level = 0
 const levels = [
@@ -119,30 +121,67 @@ setMap(levels[level])
 var allowFall = false
 var allowJump = true
 
+let currentSprite = playerIdle
+
+function replaceSprite(sprite) {
+  let plr = null
+  let x = null
+  let y = null
+  
+  if (getFirst(playerIdle) != null) {
+    plr = getFirst(playerIdle)
+    x = plr.x
+    y = plr.y
+    plr.remove()
+    addSprite(x, y, sprite)
+    currentSprite = playerIdle
+  } else if (getFirst(playerJump) != null) {
+    plr = getFirst(playerJump)
+    x = plr.x
+    y = plr.y
+    plr.remove()
+    addSprite(x, y, sprite)
+    currentSprite = playerJump
+  } else if (getFirst(playerFall) != null) {
+    plr = getFirst(playerFall)
+    x = plr.x
+    y = plr.y
+    plr.remove()
+    addSprite(x, y, sprite)
+    currentSprite = playerFall
+  }
+}
+
 function gravity() {
   if (allowFall == true) {
-    var plr = null
+    replaceSprite(playerFall)
+    
+    var plr = getFirst(playerFall)
     var x = null
     var y = null
-    
-    if (getFirst(playerIdle) != null) {
-      plr = getFirst(playerIdle)
-      x = plr.x
-      y = plr.y
-      plr.remove()
-      addSprite(x, y, playerFall)
-    }else if (getFirst(playerJump) != null) {
-      plr = getFirst(playerIdle)
-      x = plr.x
-      y = plr.y
-      plr.remove()
-      addSprite(x, y, playerFall)
+    var stop = false
+
+    let tileBelowY = plr.y + 1
+
+    let tileBelow = getTile(plr.x, tileBelowY)
+    tileBelow.forEach(function(sprite) {
+      if (sprite.type === platform) {
+        stop = true
+      }
+    })
+
+    if (tileBelowY == height()) {
+      stop = true
     }
 
-    getFirst(playerFall).y += 1
+    if (stop == false) {
+      getFirst(playerFall).y += 1
+    } else if (stop == true) {
+      allowFall = false
+      allowJump = true
+      replaceSprite(playerIdle)
+    }
   }
-
-  // console.log(allowFall)
   
   setTimeout(gravity, 100)
 }
@@ -151,14 +190,27 @@ var upCount = 0
 
 function jump() {
   if (upCount < jumpHeight) {
+    allowJump = false
+    replaceSprite(playerJump)
     allowFall = false
-    getFirst(playerIdle).y -= 1
+    getFirst(playerJump).y -= 1
     upCount += 1
     setTimeout(jump, 100)
   } else if (upCount == jumpHeight) {
     allowFall = true
     upCount = 0
   }
+}
+
+function noPlatform() {
+  let plr = getFirst(playerIdle)
+  let tileBelow = getTile(plr.x, plr.y+1)
+
+  tileBelow.forEach(function(sprite) {
+    if (sprite.type == platform) {
+      allowFall = true
+    }
+  })
 }
 
 function createPlatform() {
@@ -169,7 +221,7 @@ function createPlatform() {
 }
 
 
-function updateWater() {
+function updateWater(level) {
   
 }
 
@@ -203,20 +255,7 @@ onInput("d", function(){
   }
 })
 
-/*
-afterInput(() => {
-  let tileBelow = getTile(getFirst(playerIdle).x, getFirst(playerIdle).y + 1)
-
-  tileBelow.forEach(function(sprite) {
-    if (sprite.type === platform) {
-      allowFall = false
-      console.log(allowFall)
-    }
-  })
-})
-*/
-
-console.log(getFirst(playerIdle).y)
+afterInput(noPlatform)
 
 function start() {
   gravity()
