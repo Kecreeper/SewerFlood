@@ -359,6 +359,7 @@ onInput("d", () => {
 afterInput(fallInAir)
 
 function start() {
+  score = 0
   level = 1
   setMap(levels[level])
   toFour = 2
