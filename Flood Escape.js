@@ -9,13 +9,14 @@ https://sprig.hackclub.com/gallery/getting_started
 */
 
 const jumpHeight = 5
-
+let score = 0
 
 const playerIdle = "i"
 const playerJump = "j"
 const playerFall = "f"
 const platform = "o"
 const water = "w"
+const background = "b"
 
 setLegend(
   [ playerIdle, bitmap`
@@ -70,22 +71,22 @@ setLegend(
 ......0..0......
 ......0..0......` ],
   [ platform,   bitmap`
-0000000000000000
-0000000000000000
-0000000000000000
-0000000000000000
-0000000000000000
-0000000000000000
-0000000000000000
-0000000000000000
-0000000000000000
-0000000000000000
-0000000000000000
-0000000000000000
-0000000000000000
-0000000000000000
-0000000000000000
-0000000000000000` ],
+................
+....11111111....
+...1000000001...
+..100000000001..
+.10000000000001.
+.10000000000001.
+.10000000000001.
+.10000000000001.
+.10000777700001.
+.1L0077777700L1.
+.1LL77777777LL1.
+.11L77777777L11.
+..1L77777777L1..
+...1777777771...
+....77777777....
+....77777777....` ],
   [ water,      bitmap`
 7777777777777777
 7777777777777777
@@ -103,6 +104,23 @@ setLegend(
 7777557777557777
 7777777777777777
 7777777777777777` ],
+  [ background, bitmap`
+LLLLLLLLLLLLLLLL
+L11111111111111L
+L1L0LLLLLLLLL0LL
+L1000LLLLLLL000L
+L1L0LLLLLLLLL0LL
+L1LLLLLLLLLLLLLL
+L1LLLLLLLLLLLLLL
+L1LLLLLLLLLLLLLL
+L1LLLLLLLLLLLLLL
+L1LLLLLLLLLLLLLL
+L1LLLLLLLLLLLLLL
+L1LLLLLLLLLLLLLL
+L1L0LLLLLLLLL0LL
+L1000LLLLLLL000L
+L1L0LLLLLLLLL0LL
+LLLLLLLLLLLLLLLL` ],
 )
 
 setSolids([ playerIdle, platform ])
@@ -111,6 +129,17 @@ setSolids([ playerFall, platform ])
 
 let level = 0
 const levels = [
+  map`
+............
+............
+............
+............
+............
+............
+............
+............
+............
+............`, // 0 - menu
   map`
 ...............
 ...............
@@ -133,15 +162,24 @@ const levels = [
 ...............
 ...............
 ...............
-.......i.......`,
+.......i.......`, // 1 - playing
+  map`
+............
+............
+............
+............
+............
+............
+............
+............
+............
+............`, // 2 - dead
 ]
 
 setMap(levels[level])
 
 var allowFall = false
 var allowJump = true
-
-let currentSprite = playerIdle
 
 function getPlayer() {
   let plr = null
@@ -158,43 +196,26 @@ function getPlayer() {
 }
 
 function replaceSprite(sprite) {
-  let plr = null
-  let x = null
-  let y = null
+  let plr = getPlayer()
   
-  if (getFirst(playerIdle) != null) {
-    plr = getFirst(playerIdle)
-    x = plr.x
-    y = plr.y
-    plr.remove()
-    addSprite(x, y, sprite)
-    currentSprite = playerIdle
-  } else if (getFirst(playerJump) != null) {
-    plr = getFirst(playerJump)
-    x = plr.x
-    y = plr.y
-    plr.remove()
-    addSprite(x, y, sprite)
-    currentSprite = playerJump
-  } else if (getFirst(playerFall) != null) {
-    plr = getFirst(playerFall)
-    x = plr.x
-    y = plr.y
-    plr.remove()
-    addSprite(x, y, sprite)
-    currentSprite = playerFall
-  }
+  let x = plr.x
+  let y = plr.y
+  plr.remove()
+  addSprite(x, y, sprite)
 }
 
 function gravity() {
+  if (level != 1) {
+    return
+  }
   if (allowFall == true) {
     replaceSprite(playerFall)
     allowJump = false
     
-    var plr = getFirst(playerFall)
-    var x = null
-    var y = null
-    var stop = false
+    let plr = getFirst(playerFall)
+    let x = null
+    let y = null
+    let stop = false
 
     let tileBelowY = plr.y + 1
 
@@ -221,9 +242,12 @@ function gravity() {
   setTimeout(gravity, 100)
 }
 
-var upCount = 0
+let upCount = 0
 
 function jump() {
+  if (level != 1) {
+    return
+  }
   if (upCount < jumpHeight) {
     allowJump = false
     replaceSprite(playerJump)
@@ -270,11 +294,12 @@ function randomPlatforms() {
   }
 }
 
-randomPlatforms()
-
 let toFour = 2
 
 function updateFrame() {
+  if (level != 1) {
+    return
+  }
   toFour += 1
   let platforms = getAll(platform)
   platforms.forEach(function(sprite) {
@@ -287,6 +312,7 @@ function updateFrame() {
   if (toFour == 4) {
     createPlatform([getRndInteger(0, 11), 0])
     toFour = 0
+    score += 1000
   }
   if (allowJump == true && allowFall == false) {
     allowFall = true
@@ -295,8 +321,11 @@ function updateFrame() {
 }
 
 function checkDeath() {
+  if (level != 1) {
+    return
+  }
   if (getPlayer().y == height()-1) {
-    console.log("dead")
+    death()
   }
   setTimeout(checkDeath, 100)
 }
@@ -314,20 +343,52 @@ onInput("w", () => {
 })
 
 onInput("a", () => {
-  getPlayer().x -=1
+  if (level == 1) {
+    getPlayer().x -=1
+  } else if (level == 0 || level == 2) {
+    start()
+  }
 })
 
 onInput("d", () => {
-  getPlayer().x +=1
+  if (level == 1) {
+    getPlayer().x +=1
+  }
 })
 
 afterInput(fallInAir)
 
 function start() {
+  level = 1
+  setMap(levels[level])
+  toFour = 2
+  upCount = 0
+  clearText()
+  setBackground(background)
   gravity()
+  randomPlatforms()
   setTimeout(createWater, 2500)
   setTimeout(updateFrame, 2500)
   setTimeout(checkDeath, 2500)
 }
 
-start()
+function death() {
+  level = 2
+  setMap(levels[level])
+  clearText()
+  addText("You drowned", { x:4, y:2, color:color`3` })
+  addText("Score: " + score, { x:4, y:5, color:color`3` })
+  addText("A to restart", { x:4, y:8, color:color`7` })
+  
+}
+
+function menu() {
+  score = 0
+  level = 0
+  setMap(levels[level])
+  clearText()
+  addText("Flood Escape", { x:4, y:2, color:color`5` })
+  addText("A to play", { x:5, y:7, color:color`7` })
+}
+
+menu()
