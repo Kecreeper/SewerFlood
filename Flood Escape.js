@@ -272,60 +272,62 @@ function randomPlatforms() {
 
 randomPlatforms()
 
+let toFour = 2
+
 function updateFrame() {
+  toFour += 1
   let platforms = getAll(platform)
   platforms.forEach(function(sprite) {
-    sprite.y += 1
+    if (sprite.y != height()-2) {
+      sprite.y += 1
+    } else {
+      sprite.remove()
+    }
   })
+  if (toFour == 4) {
+    createPlatform([getRndInteger(0, 11), 0])
+    toFour = 0
+  }
+  if (allowJump == true && allowFall == false) {
+    allowFall = true
+  }
+  setTimeout(updateFrame, 2500)
 }
 
-function createWater(y) {
-  y = 21 - y
-  
+function checkDeath() {
+  if (getPlayer().y == height()-1) {
+    console.log("dead")
+  }
+  setTimeout(checkDeath, 100)
+}
+
+function createWater() {
   for (let i = 0; i < width(); i++) {
-    addSprite(i, y, water)
+    addSprite(i, 21, water)
   }
 }
 
-function updateWater(waterLevel) {
-
-  
-  
-}
-
-onInput("w", function(){
+onInput("w", () => {
   if (allowJump == true) {
     jump()
   }
 })
 
-onInput("a", function(){
-  if (getFirst(playerIdle) != null) {
-    getFirst(playerIdle).x -= 1
-  }else if (getFirst(playerJump) != null) {
-    getFirst(playerJump).x -= 1
-  }else if (getFirst(playerFall) != null) {
-    getFirst(playerFall).x -= 1
-  }
+onInput("a", () => {
+  getPlayer().x -=1
 })
 
-onInput("d", function(){
-  if (getFirst(playerIdle) != null) {
-    getFirst(playerIdle).x += 1
-  }else if (getFirst(playerJump) != null) {
-    getFirst(playerJump).x += 1
-  }else if (getFirst(playerFall) != null) {
-    getFirst(playerFall).x += 1
-  }
+onInput("d", () => {
+  getPlayer().x +=1
 })
 
 afterInput(fallInAir)
 
-// afterInput(noPlatform)
-
 function start() {
   gravity()
-  setTimeout(createWater(0), 1000)
+  setTimeout(createWater, 2500)
+  setTimeout(updateFrame, 2500)
+  setTimeout(checkDeath, 2500)
 }
 
 start()
