@@ -11,11 +11,16 @@ let score = 0
 const playerIdle = "i"
 const playerJump = "j"
 const playerFall = "f"
+
 const platform = "o"
 const water = "w"
 const background = "b"
 
+const turbo = "t"
+const hourglass = "H"
+
 setLegend(
+  // player
   [ playerIdle, bitmap`
 ................
 ................
@@ -67,6 +72,7 @@ setLegend(
 .......00.......
 ......0..0......
 ......0..0......` ],
+  // blocks
   [ platform,   bitmap`
 ................
 ....11111111....
@@ -118,7 +124,44 @@ L1L0LLLLLLLLL0LL
 L1000LLLLLLL000L
 L1L0LLLLLLLLL0LL
 LLLLLLLLLLLLLLLL` ],
+  // powerups
+  [ turbo,      bitmap`
+................
+...............3
+....333333333033
+...3333333333033
+..33300000333033
+.3330330330333.3
+.3303030303033..
+.3303300033033..
+.3300000000033..
+.3303300033033..
+.3303030303033..
+.3330330330333..
+..33300000333...
+...333333333....
+....3333333.....
+................` ],
+  [ hourglass,  bitmap`
+..DDDDDDDDDDDD..
+...D........D...
+...D........D...
+...D........D...
+....D......D....
+....DFF..FFD....
+.....DFFFFD.....
+......DFFD......
+......DFFD......
+.....D.FF.D.....
+....D..FF..D....
+....D..FF..D....
+...D..FFFF..D...
+...D.FFFFFF.D...
+...DFFFFFFFFD...
+..DDDDDDDDDDDD..` ],
 )
+
+const powerups = [turbo, hourglass]
 
 setSolids([ playerIdle, platform ])
 setSolids([ playerJump, platform ])
@@ -175,6 +218,10 @@ const levels = [
 
 setMap(levels[level])
 
+function getRndInteger(min, max) {
+  return Math.floor(Math.random() * (max - min + 1) ) + min;
+}
+
 var allowFall = false
 var allowJump = true
 
@@ -199,6 +246,22 @@ function replaceSprite(sprite) {
   let y = plr.y
   plr.remove()
   addSprite(x, y, sprite)
+}
+
+function getPowerups() {
+  let finalTable = []
+
+  for (i = 0; i < powerups.length; i++) {
+    finalTable = finalTable.concat(getAll(powerups[i]))
+  }
+
+  console.log(finalTable)
+  return finalTable
+}
+
+function spawnPowerup() {
+  const sprite = powerups[getRndInteger(0, powerups.length-1)]
+  addSprite(getRndInteger(0, width()-1), 0, sprite)
 }
 
 function gravity() {
@@ -234,6 +297,12 @@ function gravity() {
       allowJump = true
       replaceSprite(playerIdle)
     }
+  }
+  const powerupsInGame = getPowerups()
+  if (powerupsInGame != []) {
+    powerupsInGame.forEach(function(sprite) {
+      sprite.y += 1
+    })
   }
   
   setTimeout(gravity, 100)
@@ -279,10 +348,6 @@ function createPlatform(pos) {
   addSprite(3+x,0+y, platform)
 }
 
-function getRndInteger(min, max) {
-  return Math.floor(Math.random() * (max - min + 1) ) + min;
-}
-
 function randomPlatforms() {
   for (let i = 2; i < height()-2; i+=4) {
     let x = getRndInteger(0, 11)
@@ -291,12 +356,15 @@ function randomPlatforms() {
 }
 
 let toFour = 2
+let toPowerup = 0
+var pipeSpeed = 1000
 
 function updateFrame() {
   if (level != 1) {
     return
   }
   toFour += 1
+  toPowerup += 1
   let platforms = getAll(platform)
   platforms.forEach(function(sprite) {
     if (sprite.y != height()-2) {
@@ -305,25 +373,43 @@ function updateFrame() {
       sprite.remove()
     }
   })
+  
   if (toFour == 4) {
     createPlatform([getRndInteger(0, 11), 0])
     toFour = 0
     score += 1000
+    pipeSpeed -= 25
+  }
+  if (toPowerup == 10) {
+    toPowerup = 0
+    spawnPowerup()
   }
   if (allowJump == true && allowFall == false) {
     allowFall = true
   }
-  setTimeout(updateFrame, 2500)
+  setTimeout(updateFrame, pipeSpeed)
 }
 
-function checkDeath() {
+function checks() {
   if (level != 1) {
     return
   }
   if (getPlayer().y == height()-1) {
     death()
   }
-  setTimeout(checkDeath, 100)
+
+  const powerupsInGame = getPowerups()
+  if (powerupsInGame != []) {
+    powerupsInGame.forEach(function(sprite) {
+      if (sprite.y == height()-1) {
+        sprite.remove()
+      }
+    })
+  }
+
+  
+  
+  setTimeout(checks, 100)
 }
 
 function createWater() {
@@ -333,7 +419,7 @@ function createWater() {
 }
 
 onInput("w", () => {
-  if (allowJump == true) {
+  if (level == 1 && allowJump == true) {
     jump()
   }
 })
@@ -352,13 +438,19 @@ onInput("d", () => {
   }
 })
 
-afterInput(fallInAir)
+afterInput(() => {
+  if (level == 1) {
+    fallInAir()
+  }
+})
 
 function start() {
+  pipeSpeed = 1000
   score = 0
   level = 1
   setMap(levels[level])
   toFour = 2
+  toPowerup = 0
   upCount = 0
   clearText()
   setBackground(background)
@@ -366,7 +458,7 @@ function start() {
   randomPlatforms()
   setTimeout(createWater, 2500)
   setTimeout(updateFrame, 2500)
-  setTimeout(checkDeath, 2500)
+  setTimeout(checks, 2500)
 }
 
 function death() {
