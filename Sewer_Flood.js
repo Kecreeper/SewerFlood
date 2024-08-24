@@ -1,11 +1,8 @@
 /*
-First time? Check out the tutorial game:
-https://sprig.hackclub.com/gallery/getting_started
-
-@title: Flood Escape
+@title: Sewer_Flood
 @author: Eduardo
-@tags: []
-@addedOn: 2024-00-00
+@tags: ["infinite"]
+@addedOn: 2024-08-22
 */
 
 const jumpHeight = 5
@@ -262,8 +259,7 @@ function jump() {
 }
 
 function fallInAir() {
-  let plr = getPlayer()
-  let tileBelow = getTile(plr.x, plr.y+1)
+  let tileBelow = getTile(getPlayer().x, getPlayer().y+1)
   if (!tileBelow.includes(platform) && allowFall == false && allowJump == true) {
     allowFall = true
   }
@@ -388,7 +384,7 @@ function menu() {
   level = 0
   setMap(levels[level])
   clearText()
-  addText("Flood Escape", { x:4, y:2, color:color`5` })
+  addText("Sewer Flood", { x:4, y:2, color:color`5` })
   addText("A to play", { x:5, y:7, color:color`7` })
 }
 
