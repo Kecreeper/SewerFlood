@@ -5,7 +5,7 @@
 @addedOn: 2024-08-22
 */
 
-const jumpHeight = 5
+let jumpHeight = 5
 let score = 0
 
 const playerIdle = "i"
@@ -16,8 +16,9 @@ const platform = "o"
 const water = "w"
 const background = "b"
 
-const turbo = "t"
+const wrench = "r"
 const hourglass = "h"
+const leapPotion = "l"
 
 setLegend(
   // player
@@ -107,6 +108,23 @@ setLegend(
 ...D.FFFFFF.D...
 ...DFFFFFFFFD...
 ..DDDDDDDDDDDD..` ],
+  [ leapPotion, bitmap`
+......CCC3......
+.....222222.....
+.....2CCC32.....
+......244L......
+......244L......
+.....24444L.....
+.....24444L.....
+....24244D4L....
+...242444D44L...
+...24244DD44L...
+...244444444L...
+...244DD4424L...
+...14DD44424L...
+....14444241....
+.....144441.....
+......1111......` ],
   // blocks
   [ platform,   bitmap`
 ................
@@ -161,7 +179,7 @@ L1L0LLLLLLLLL0LL
 LLLLLLLLLLLLLLLL` ],
 )
 
-const powerups = [turbo, hourglass]
+const powerups = [wrench, hourglass, leapPotion]
 
 setSolids([ playerIdle, platform ])
 setSolids([ playerJump, platform ])
@@ -256,7 +274,7 @@ function getPowerups() {
 
 function spawnPowerup() {
   const sprite = powerups[getRndInteger(0, powerups.length-1)]
-  addSprite(getRndInteger(0, width()-1), 0, sprite)
+  addSprite(getRndInteger(2, width()-3), 0, sprite)
 }
 
 function gravity() {
@@ -350,9 +368,9 @@ function createPlatform(pos) {
   addSprite(3+x,0+y, platform)
 }
 
-function randomPlatforms() {
+function starterPlatforms() {
   for (let i = 2; i < height()-2; i+=4) {
-    let x = getRndInteger(0, 11)
+    let x = getRndInteger(2, width()-7)
     createPlatform([x, i])
   }
 }
@@ -377,7 +395,7 @@ function updateFrame() {
   })
   
   if (toFour == 4) {
-    createPlatform([getRndInteger(0, 11), 0])
+    createPlatform([getRndInteger(1, width()-5), 0])
     toFour = 0
     score += 1000
     pipeSpeed -= 25
@@ -434,7 +452,7 @@ onInput("a", () => {
     level = null
     clearText()
     addText("Restarting...", { x:4, y:8, color:color`3` })
-    setTimeout(start, 500)
+    setTimeout(start, pipeSpeed+200)
   }
 })
 
@@ -450,22 +468,41 @@ let paused = false
 function pausePipes() {
   if (paused == false) {
     current = pipeSpeed
-    
+    paused = true
+    pipeSpeed = 3000
+    setTimeout(pausePipes, 1000)
   } else if (paused == true) {
-    
+    paused = false
+    pipeSpeed = current
   }
 }
 
-onInput("j", () => { // pickup and use powerup
+let boostingJump = false
+
+function jumpBoost() {
+  if (boostingJump == false) {
+    boostingJump = true
+    jumpHeight = 10
+    setTimeout(jumpBoost, 2500)
+  } else if (boostingJump == true) {
+    boostingJump = false
+    jumpHeight = 5
+  }
+}
+
+onInput("j", () => { // catch and use powerup
   if (level == 1) {
     const tile = getTile(getPlayer().x, getPlayer().y)
     tile.forEach(function(sprite) {
-      if (sprite.type === turbo) {
+      if (sprite.type === wrench) {
         sprite.remove()
-        pipeSpeed -= 100
+        pausePipes()
       } else if (sprite.type === hourglass) {
         sprite.remove()
-        pipeSpeed += 100
+        pipeSpeed += 200
+      } else if (sprite.type === leapPotion) {
+        sprite.remove()
+        jumpBoost()
       }
     })
   }
@@ -488,7 +525,7 @@ function start() {
   clearText()
   setBackground(background)
   gravity()
-  randomPlatforms()
+  starterPlatforms()
   setTimeout(createWater, 2500)
   setTimeout(updateFrame, 2500)
   setTimeout(checks, 2500)
