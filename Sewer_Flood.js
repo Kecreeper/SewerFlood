@@ -17,7 +17,7 @@ const water = "w"
 const background = "b"
 
 const turbo = "t"
-const hourglass = "H"
+const hourglass = "h"
 
 setLegend(
   // player
@@ -72,6 +72,41 @@ setLegend(
 .......00.......
 ......0..0......
 ......0..0......` ],
+  // powerups
+  [ wrench,     bitmap`
+..0000..........
+...0220.........
+0...0120........
+00.01120........
+0L011120........
+00011120........
+.0LLL1120.......
+..0000L120......
+......0L120.....
+.......0L120....
+........0L120...
+.........0L120..
+..........0L120.
+...........0L020
+............0L10
+.............00.` ],
+  [ hourglass,  bitmap`
+..DDDDDDDDDDDD..
+...D........D...
+...D........D...
+...D........D...
+....D......D....
+....DFF..FFD....
+.....DFFFFD.....
+......DFFD......
+......DFFD......
+.....D.FF.D.....
+....D..FF..D....
+....D..FF..D....
+...D..FFFF..D...
+...D.FFFFFF.D...
+...DFFFFFFFFD...
+..DDDDDDDDDDDD..` ],
   // blocks
   [ platform,   bitmap`
 ................
@@ -124,41 +159,6 @@ L1L0LLLLLLLLL0LL
 L1000LLLLLLL000L
 L1L0LLLLLLLLL0LL
 LLLLLLLLLLLLLLLL` ],
-  // powerups
-  [ turbo,      bitmap`
-................
-...............3
-....333333333033
-...3333333333033
-..33300000333033
-.3330330330333.3
-.3303030303033..
-.3303300033033..
-.3300000000033..
-.3303300033033..
-.3303030303033..
-.3330330330333..
-..33300000333...
-...333333333....
-....3333333.....
-................` ],
-  [ hourglass,  bitmap`
-..DDDDDDDDDDDD..
-...D........D...
-...D........D...
-...D........D...
-....D......D....
-....DFF..FFD....
-.....DFFFFD.....
-......DFFD......
-......DFFD......
-.....D.FF.D.....
-....D..FF..D....
-....D..FF..D....
-...D..FFFF..D...
-...D.FFFFFF.D...
-...DFFFFFFFFD...
-..DDDDDDDDDDDD..` ],
 )
 
 const powerups = [turbo, hourglass]
@@ -241,11 +241,7 @@ function getPlayer() {
 
 function replaceSprite(sprite) {
   let plr = getPlayer()
-  
-  let x = plr.x
-  let y = plr.y
-  plr.remove()
-  addSprite(x, y, sprite)
+  plr.type = sprite
 }
 
 function getPowerups() {
@@ -255,7 +251,6 @@ function getPowerups() {
     finalTable = finalTable.concat(getAll(powerups[i]))
   }
 
-  console.log(finalTable)
   return finalTable
 }
 
@@ -298,14 +293,21 @@ function gravity() {
       replaceSprite(playerIdle)
     }
   }
+  
+  setTimeout(gravity, 100)
+}
+
+function powerupGravity() {
+  if (level != 1) {
+    return
+  }
   const powerupsInGame = getPowerups()
   if (powerupsInGame != []) {
     powerupsInGame.forEach(function(sprite) {
       sprite.y += 1
     })
   }
-  
-  setTimeout(gravity, 100)
+  setTimeout(powerupGravity, 300)
 }
 
 let upCount = 0
@@ -406,8 +408,6 @@ function checks() {
       }
     })
   }
-
-  
   
   setTimeout(checks, 100)
 }
@@ -427,14 +427,47 @@ onInput("w", () => {
 onInput("a", () => {
   if (level == 1) {
     getPlayer().x -=1
-  } else if (level == 0 || level == 2) {
+  } else if (level == 0) {
+    level = null
     start()
+  } else if (level == 2) {
+    level = null
+    clearText()
+    addText("Restarting...", { x:4, y:8, color:color`3` })
+    setTimeout(start, 500)
   }
 })
 
 onInput("d", () => {
   if (level == 1) {
     getPlayer().x +=1
+  }
+})
+
+let current = null
+let paused = false
+
+function pausePipes() {
+  if (paused == false) {
+    current = pipeSpeed
+    
+  } else if (paused == true) {
+    
+  }
+}
+
+onInput("j", () => { // pickup and use powerup
+  if (level == 1) {
+    const tile = getTile(getPlayer().x, getPlayer().y)
+    tile.forEach(function(sprite) {
+      if (sprite.type === turbo) {
+        sprite.remove()
+        pipeSpeed -= 100
+      } else if (sprite.type === hourglass) {
+        sprite.remove()
+        pipeSpeed += 100
+      }
+    })
   }
 })
 
@@ -459,6 +492,7 @@ function start() {
   setTimeout(createWater, 2500)
   setTimeout(updateFrame, 2500)
   setTimeout(checks, 2500)
+  setTimeout(powerupGravity, 2500)
 }
 
 function death() {
